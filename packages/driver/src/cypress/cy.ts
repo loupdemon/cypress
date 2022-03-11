@@ -188,6 +188,7 @@ export class $Cy extends EventEmitter2 implements ITimeouts, IStability, IAssert
   ensureNotReadonly: IEnsures['ensureNotReadonly']
 
   createSnapshot: ISnapshots['createSnapshot']
+  createCrossOriginSnapshot: any
   detachDom: ISnapshots['detachDom']
   getStyles: ISnapshots['getStyles']
 
@@ -342,6 +343,7 @@ export class $Cy extends EventEmitter2 implements ITimeouts, IStability, IAssert
     const snapshots = createSnapshots(jquery.$$, state)
 
     this.createSnapshot = snapshots.createSnapshot
+    this.createCrossOriginSnapshot = snapshots.createSnapshotFromAnotherDomain
     this.detachDom = snapshots.detachDom
     this.getStyles = snapshots.getStyles
 

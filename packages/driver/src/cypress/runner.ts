@@ -1660,6 +1660,7 @@ export default {
       },
 
       getSnapshotPropsForLogById (logId) {
+        debugger
         const attrs = _logsById[logId]
 
         if (attrs) {

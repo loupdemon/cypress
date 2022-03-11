@@ -5,6 +5,7 @@ import $ from 'jquery'
 import clone from 'clone'
 
 import { HIGHLIGHT_ATTR } from '../cy/snapshots'
+import { preprocessForSerialization } from '../util/serialization'
 import * as $Events from './events'
 import $dom from '../dom'
 import $utils from './utils'
@@ -71,11 +72,25 @@ const toSerializedJSON = function (attrs) {
 }
 
 const getDisplayProps = (attrs) => {
-  return {
+  const a = {
     ..._.pick(attrs, DISPLAY_PROPS),
     hasSnapshot: !!attrs.snapshots,
     hasConsoleProps: !!attrs.consoleProps,
+    viewportWidth: attrs.viewportWidth,
+    viewportHeight: attrs.viewportHeight,
+    ...(Cypress.isMultiDomain && attrs.snapshots?.length > 0 ? {
+      snapshots: attrs.snapshots?.map((snapshot) => preprocessForSerialization(snapshot)),
+    } : {}),
+    // ...(Cypress.isMultiDomain ? {
+    //   needsSnapshotFromPrimary: !!attrs.needsSnapshotFromPrimary,
+    // } : {}),
   }
+
+  // if (Cypress.isMultiDomain && attrs.snapshots?.length > 0) {
+  //   debugger
+  // }
+
+  return a
 }
 
 const getConsoleProps = (attrs) => {

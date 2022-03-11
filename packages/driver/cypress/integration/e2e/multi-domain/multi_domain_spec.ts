@@ -5,7 +5,7 @@ describe('multi-domain', { experimentalSessionSupport: true }, () => {
     cy.get('a[data-cy="multi-domain-secondary-link"]').click()
   })
 
-  it('runs commands in secondary domain', () => {
+  it.only('runs commands in secondary domain', () => {
     cy.switchToDomain('foobar.com', () => {
       cy
       .get('[data-cy="dom-check"]')

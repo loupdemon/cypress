@@ -199,15 +199,23 @@ export const create = ($$, state) => {
       // so that there are no side effects from cloning it. we only attach it back
       // to the AUT document at the last moment (when restoring the snapshot)
       // https://github.com/cypress-io/cypress/issues/8679
-      let attachedBody
-      const body = {
-        get: () => {
-          if (!attachedBody) {
-            attachedBody = $$(state('document').adoptNode($body[0]))
-          }
 
-          return attachedBody
-        },
+      let body
+
+      if (Cypress.isMultiDomain) {
+        body = $body[0].innerHTML
+      } else {
+        let attachedBody
+
+        body = {
+          get: () => {
+            if (!attachedBody) {
+              attachedBody = $$(state('document').adoptNode($body[0]))
+            }
+
+            return attachedBody
+          },
+        }
       }
 
       const snapshot = {
@@ -216,7 +224,84 @@ export const create = ($$, state) => {
         body,
       }
 
+      // TODO: how to we get this to primary for multi domain?
       snapshotsMap.set(snapshot, { headStyleIds, bodyStyleIds })
+
+      return snapshot
+    } catch (e) {
+      return null
+    }
+  }
+
+  const createSnapshotFromAnotherDomain = (name: string | undefined, htmlAttrs: any, crossDomainSnapshotAsString: string) => {
+    Cypress.action('cy:snapshot', name)
+
+    const crossDomainBodyDetached = document.createElement('body')
+
+    crossDomainBodyDetached.innerHTML = crossDomainSnapshotAsString
+
+    try {
+      const $body = $$(snapshotDocument.importNode(crossDomainBodyDetached, true))
+
+      // for the head and body, get an array of all CSS,
+      // whether it's links or style tags
+      // if it's same-origin, it will get the actual styles as a string
+      // it it's cross-domain, it will get a reference to the link's href
+      // const { headStyleIds, bodyStyleIds } = snapshotsCss.getStyleIds()
+
+      // replaces iframes with placeholders
+      replaceIframes($body)
+
+      // remove tags we don't want in body
+      $body.find('script,link[rel=\'stylesheet\'],style').remove()
+
+      // here we need to figure out if we're in a remote manual environment
+      // if so we need to stringify the DOM:
+      // 1. grab all inputs / textareas / options and set their value on the element
+      // 2. convert DOM to string: body.prop("outerHTML")
+      // 3. send this string via websocket to our server
+      // 4. server rebroadcasts this to our client and its stored as a property
+
+      // its also possible for us to store the DOM string completely on the server
+      // without ever sending it back to the browser (until its requests).
+      // we could just store it in memory and wipe it out intelligently.
+      // this would also prevent having to store the DOM structure on the client,
+      // which would reduce memory, and some CPU operations
+
+      // now remove it after we clone
+
+      // preserve attributes on the <html> tag
+      // const htmlAttrs = getHtmlAttrs($$('html')[0])
+      // the body we clone via importNode above is attached to a transient document
+      // so that there are no side effects from cloning it. we only attach it back
+      // to the AUT document at the last moment (when restoring the snapshot)
+      // https://github.com/cypress-io/cypress/issues/8679
+
+      let body
+
+      if (Cypress.isMultiDomain) {
+        body = $body[0].outerHTML
+      } else {
+        let attachedBody
+
+        body = {
+          get: () => {
+            if (!attachedBody) {
+              attachedBody = $$(state('document').adoptNode($body[0]))
+            }
+
+            return attachedBody
+          },
+        }
+      }
+
+      const snapshot = {
+        name,
+        htmlAttrs,
+        body,
+      }
+
+      // snapshotsMap.set(snapshot, { headStyleIds, bodyStyleIds })
 
       return snapshot
     } catch (e) {
@@ -226,6 +311,7 @@ export const create = ($$, state) => {
 
   return {
     createSnapshot,
+    createSnapshotFromAnotherDomain,
     detachDom,
     getStyles,
     onCssModified: snapshotsCss.onCssModified,

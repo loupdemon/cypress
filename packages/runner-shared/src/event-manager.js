@@ -183,12 +183,14 @@ export const eventManager = {
 
       const snapshotProps = Cypress.runner.getSnapshotPropsForLogById(logId)
 
+      debugger
       if (snapshotProps) {
         localBus.emit(event, snapshotProps)
       }
     }
 
     reporterBus.on('runner:show:snapshot', (logId) => {
+      debugger
       sendEventIfSnapshotProps(logId, 'show:snapshot')
     })
 
@@ -534,6 +536,10 @@ export const eventManager = {
       const callback = () => {
         Cypress.multiDomainCommunicator.toSpecBridge(domain, 'viewport:changed:end')
       }
+      /**
+       * viewportHeight: 660
+viewportWidth: 1000
+       */
 
       // TODO: Do we want to use the multiDomainCommunicator to send these types of messages or Cypress itself?
       Cypress.multiDomainCommunicator.emit('sync:viewport', viewport)
@@ -555,10 +561,23 @@ export const eventManager = {
     Cypress.multiDomainCommunicator.on('after:screenshot', handleAfterScreenshot)
 
     Cypress.multiDomainCommunicator.on('log:added', (attrs) => {
+      debugger
+      // TODO: get viewport width and height into log snapshot
+      Cypress.runner.addLog(attrs, Cypress.config('isInteractive'))
       reporterBus.emit('reporter:log:add', attrs)
     })
 
     Cypress.multiDomainCommunicator.on('log:changed', (attrs) => {
+      if (attrs.snapshots) {
+        attrs.snapshots.forEach((snapshot, idx) => {
+          attrs.snapshots[idx] = cy.createCrossOriginSnapshot(snapshot.name, snapshot.htmlAttrs, snapshot.body)
+        })
+      }
+
+      debugger
+      // TODO: get viewport width and height into log snapshot
+      Cypress.runner.addLog(attrs, Cypress.config('isInteractive'))
+
       reporterBus.emit('reporter:log:state:changed', attrs)
     })
   },
