@@ -136,4 +136,67 @@ describe('Cypress In Cypress', { viewportWidth: 1500 }, () => {
       expect(request.body.variables.specPath).to.contain('/cypress-in-cypress/src/TestComponent.spec.jsx')
     })
   })
+
+  it('shows automation disconnected warning', () => {
+    cy.visitApp()
+    cy.get('[data-cy="spec-item"]').first().click()
+    // Let runner stabilize
+    cy.get('[data-cy="reporter-panel"]').should('be.visible')
+
+    cy.withCtx((ctx) => {
+      ctx.coreData.servers.appSocketServer?.emit('automation:disconnected')
+    })
+
+    cy.contains('h1', 'Whoops, the Cypress extension has disconnected')
+
+    cy.withCtx((ctx, { sinon }) => {
+      sinon.stub(ctx.actions.project, 'launchProject').resolves()
+    })
+
+    cy.contains('button', 'Reload the browser').click()
+
+    cy.withCtx((ctx) => {
+      expect(ctx.actions.project.launchProject).to.have.been.called
+    })
+  })
+
+  it('shows automation missing warning', () => {
+    let connectedCallback: any
+
+    cy.visitApp()
+
+    cy.window().then((win) => {
+      const originalEmit: Function = win.ws?.emit || function () {}
+      const stub = cy.stub(win.ws as any, 'emit')
+
+      stub.callsFake((...args) => {
+        if (args[0] === 'is:automation:client:connected') {
+          connectedCallback = args[2]
+        }
+
+        originalEmit.call(win.ws, ...args)
+      })
+    })
+
+    cy.get('[data-cy="spec-item"]').first().click()
+    // Let runner stabilize
+    cy.get('[data-cy="reporter-panel"]').should('be.visible').then(() => {
+      connectedCallback()
+    })
+
+    cy.contains('h1', 'Whoops, we can\'t run your tests')
+
+    cy.get('[data-cy="select-browser"]').click()
+
+    cy.withCtx((ctx, { sinon }) => {
+      sinon.stub(ctx.actions.project, 'launchProject').resolves()
+    })
+
+    cy.contains('li', 'Electron').click()
+
+    cy.withCtx((ctx) => {
+      expect(ctx.coreData.chosenBrowser?.displayName).eq('Electron')
+      expect(ctx.actions.project.launchProject).to.have.been.called
+    })
+  })
 })
