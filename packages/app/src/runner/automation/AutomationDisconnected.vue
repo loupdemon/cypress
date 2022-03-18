@@ -2,7 +2,7 @@
   <AutInfo>
     <div class="flex flex-col bg-gray-50 text-gray-800 gap-16px items-center">
       <i-cy-cypress-logo_x64 class="h-64px w-64px" />
-      <h1 class="font-bold text-3xl">
+      <h1 class="font-bold text-center text-3xl">
         {{ t('runner.automation.disconnected.title') }}
       </h1>
       <p>
